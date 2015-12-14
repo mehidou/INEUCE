@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="alethes" default="main" phingVersion="2.5">
+
+  <!-- ============================================  -->
+  <!-- Target: hello                                 -->
+  <!-- ============================================  -->
+
+  <target name="hello" description="Says Hello" depends="init">
+    <echo msg="Hello, world!" />
+    <echo msg="${phing.dir}" />
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: deploy-prepare-shared-path            -->
+  <!-- ============================================  -->
+
+  <target name="deploy-prepare-shared-path">
+    <echo msg="Hello, world!" />
+    <echo msg="${phing.dir}" />
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: deploy                                -->
+  <!-- ============================================  -->
+
+  <target name="deploy">
+    <echo msg="Hello, world!" />
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: site-install                          -->
+  <!-- ============================================  -->
+
+  <target name="site-install" depends="init, setup-phing-drush"
+          unless="prject.installed">
+
+    <property name="drupal.db.url"
+              value="${drupal.db.schema}://${drupal.db.user.name}:${drupal.db.user.pass}@${drupal.db.host}:${drupal.db.port}/${drupal.db.name}" />
+
+    <drush command="site-install" assume="yes">
+      <option name="db-url">${drupal.db.url}</option>
+      <option name="account-name">${drupal.account.name}</option>
+      <option name="account-pass">${drupal.account.pass}</option>
+      <option name="account-mail">${drupal.account.mail}</option>
+      <option name="site-name">${drupal.site.name}</option>
+      <option name="site-mail">${drupal.site.mail}</option>
+      <option name="clean-url">1</option>
+      <param>${drupal.profile}</param>
+    </drush>
+
+    <if><equals arg1="${project.environment}" arg2="dev" />
+      <then><phingcall target="enable-reroute-email" /></then>
+    </if>
+    
+    <!-- enable modules -->
+    <foreach list="${project.modules.custom}" param="module" target="enable-module" />
+
+    <!-- enable themes -->
+    <foreach list="${project.themes}" param="module" target="enable-module" />
+
+    <phingcall target="features-revert" />
+    <phingcall target="setup-permissions" />
+
+    <drush command="cache-clear">
+      <param>all</param>
+    </drush>
+
+    <if>
+      <equals arg1="${generate.content}" arg2="true" />
+      <then>
+        <phingcall target="generate-content" />
+      </then>
+    </if>
+
+    <!-- rebuild content access permissions -->
+    <drush command="php-eval" assume="yes">
+      <param>'node_access_rebuild();'</param>
+    </drush>
+
+    <!-- Set property to prevent target from being executed multiple times -->
+    <property name="project.installed" value="true"/>
+
+  </target>
+  
+  <!-- ============================================  -->
+  <!-- Target: enable-module                         -->
+  <!-- ============================================  -->
+
+  <target name="enable-module">
+
+    <echo msg="Enable module ${module} ..." />
+
+    <drush command="pm-enable" assume="yes">
+      <param>${module}</param>
+    </drush>
+
+  </target>
+  
+  <!-- ============================================  -->
+  <!-- Target: update                                -->
+  <!-- ============================================  -->
+
+  <target name="update" depends="init, setup-phing-drush">
+
+    <drush command="updatedb" assume="yes" />
+
+    <drush command="cache-clear" assume="yes">
+      <param>all</param>
+    </drush>
+
+    <phingcall target="features-revert" />
+    <phingcall target="update-translations"/>
+
+    <drush command="cache-clear" assume="yes">
+      <param>all</param>
+    </drush>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: features-revert                       -->
+  <!-- ============================================  -->
+
+  <target name="features-revert" depends="init, setup-phing-drush">
+
+    <if><equals arg1="${project.modules.custom}" arg2="" />
+    <then><echo msg="No features defined for this project." /></then>
+    <else>
+
+      <drush command="atools-features-list" returnProperty="features_to_revert">
+        <option name="restricted-to">"${project.modules.custom}"</option>
+      </drush>
+
+      <if><equals arg1="${features_to_revert}" arg2="" />
+      <then><echo msg="None of the features needs a revert." /></then>
+      <else>
+        <foreach list="${features_to_revert}" param="module" target="feature-revert" />
+      </else>
+      </if>
+
+    </else>
+    </if>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: feature-revert                        -->
+  <!-- ============================================  -->
+
+  <target name="feature-revert">
+    <drush command="features-revert" assume="yes">
+      <param>${module}</param>
+    </drush>
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: run-tests                             -->
+  <!-- ============================================  -->
+
+  <target name="run-tests" depends="init">
+
+    <!-- Runs a lightweight built in http server for testing. -->
+    <!-- <drush command="rs"> -->
+    <!--   <option name="server">builtin</option> -->
+    <!--   <param>localhost:9000</param> -->
+    <!-- </drush> -->
+
+    <echo>Creating behat.yml file.</echo>
+    <copy file="behat.yml.dist" tofile="behat.yml" overwrite="true">
+      <filterchain>
+        <expandproperties />
+      </filterchain>
+    </copy>
+
+    <!-- start selenium server in the background -->
+    <exec command="java -jar ${phing.dir}/bin/selenium-server-standalone.jar -port ${selenium.port}" spawn="true" />
+
+    <!-- start phantomjs -->
+    <exec command="${phing.dir}/bin/phantomjs --webdriver=${phantomjs.port}" spawn="true" />
+
+    <exec command="${phing.dir}/bin/behat --ansi --format pretty,junit --out ,${project.testdir}" passthru="true" />
+
+    <!-- stop selenium server -->
+    <echo msg="wget -O - -q -t 1 http://localhost:${selenium.port}/selenium-server/driver/?cmd=shutDownSeleniumServer" />
+    <exec command="wget -O - -q -t 1 http://localhost:${selenium.port}/selenium-server/driver/?cmd=shutDownSeleniumServer" passthru="true" />
+
+    <!-- stop phantomjs -->
+    <!-- FIXME: we should find another way to exit phantomjs!! -->
+    <exec command="killall phantomjs" passthru="true" />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: dump                                  -->
+  <!-- ============================================  -->
+
+  <target name="dump" depends="init, setup-phing-drush">
+
+    <property name="dump.filename" value="dump-$(date +%Y-%m-%d-%H.%M.%S).sql" override="false"/>
+
+    <drush command="sql-dump" assume="yes">
+      <option name="result-file">${phing.dir}/${dump.filename}</option>
+      <option name="gzip" />
+    </drush>
+  </target>
+
+
+  <!-- ============================================  -->
+  <!-- Target: clean                                 -->
+  <!-- ============================================  -->
+
+  <target name="clean" depends="setup-dirs" unless="project.cleaned"
+          description="Clean up and create artifact directories">
+
+    <delete dir="${project.toolsdir}"/>
+    <delete dir="${project.coveragedir}"/>
+    <delete dir="${project.logdir}"/>
+    <delete dir="${project.testdir}"/>
+
+    <mkdir dir="${project.toolsdir}"/>
+    <mkdir dir="${project.coveragedir}"/>
+    <mkdir dir="${project.logdir}"/>
+    <mkdir dir="${project.testdir}"/>
+
+    <property name="project.cleaned" value="true"/>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: setup-permissions                     -->
+  <!-- ============================================  -->
+
+  <target name="setup-permissions" depends="setup-dirs">
+
+      <chmod mode="0777" failonerror="false">
+        <fileset dir="${project.drupal.dir}/sites/default/files" />
+      </chmod>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: setup-phing-drush                     -->
+  <!-- ============================================  -->
+
+  <target name="setup-phing-drush" depends="setup-dirs">
+
+    <!-- Register as custom Phing task -->
+    <taskdef name="drush" classname="DrushTask"
+             classpath="${project.basedir}/vendor/drupal/phing-drush-task" />
+
+    <!-- Run drush from the project Drupal directory -->
+    <property name="drush.root" value="${project.drupal.dir}"/>
+
+    <!-- Use Drush installed by composer -->
+    <property name="drush.bin" value="${phing.dir}/bin/drush"/>
+
+    <!-- Assume yes by default -->
+    <property name="drush.assume" value="yes"/>
+
+  </target>
+
+
+  <!-- ============================================  -->
+  <!-- Target: phploc                                -->
+  <!-- ============================================  -->
+
+  <target name="phploc" depends="init">
+
+    <phploc reportType="csv"
+            reportName="phploc" resportDirectory="${project.logdir}"
+            suffixes="php,module,inc,install,profile,test" countTests="true">
+      <fileset refid="src.php.custom" />
+    </phploc>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: cs                                    -->
+  <!-- ============================================  -->
+
+  <target name="cs" depends="init">
+
+    <delete dir="${project.logdir}"/>
+    <mkdir dir="${project.logdir}"/>
+
+    <drush command="dcs" assume="yes" haltonerror="no">
+      <option name="report-file">${project.logdir}/checkstyle-modules.xml</option>
+      <option name="report">checkstyle</option>
+      <param>modules</param>
+    </drush>
+
+    <drush command="dcs" assume="yes" haltonerror="no">
+      <option name="report-file">${project.logdir}/checkstyle-themes.xml</option>
+      <option name="report">checkstyle</option>
+      <param>themes</param>
+    </drush>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: init                                  -->
+  <!-- ============================================  -->
+
+  <!-- Initialization: This target sets up many of the common
+       resources used throughout the build. -->
+
+  <target name="init" depends="load-properties, setup-dirs, setup-filesets"
+          unless="project.initialized">
+
+    <!-- Set property to prevent target from being executed multiple times -->
+    <property name="project.initialized" value="true"/>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: load-properties                       -->
+  <!-- ============================================  -->
+
+  <target name="load-properties">
+
+    <property file="${phing.dir}/build.default.properties" />
+    <property file="${phing.dir}/build.properties" override="true" />
+
+    <property name="project.basedir" value="${phing.dir}" />
+    <property name="project.logdir" value="${project.builddir}/logs" />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: setup-dirs                            -->
+  <!-- ============================================  -->
+
+  <target name="setup-dirs" depends="load-properties">
+
+    <property name="project.drupal.dir"
+              value="${project.basedir}/${drupal.make.dir}" />
+
+    <property name="project.sitesdir"
+              value="${project.drupal.dir}/${project.code.dir}" />
+
+    <property name="project.builddir"
+              value="${project.basedir}/build" />
+
+    <property name="project.toolsdir"
+              value="${project.builddir}/tools" />
+
+    <property name="project.coveragedir"
+              value="${project.builddir}/coverage" />
+
+    <property name="project.logdir"
+              value="${project.builddir}/logs" />
+
+    <property name="project.testdir"
+              value="${project.builddir}/tests" />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: setup-filesets                        -->
+  <!-- ============================================  -->
+
+  <!-- Setup file sets - patterns for different aspects of the source
+       code. These are used in other targets. -->
+
+  <target name="setup-filesets" depends="load-properties">
+
+    <!-- PHP files -->
+
+    <patternset id="php">
+      <include name="**/*.php" />
+      <include name="**/*.module" />
+      <include name="**/*.install" />
+      <include name="**/*.inc" />
+      <include name="**/*.profile" />
+      <include name="**/*.test" />
+    </patternset>
+
+    <!-- Javascript files. Minimized JavaScript files should not be
+         analyzed. In their optimized state they can not be expexted
+         to conform to coding standards. -->
+
+    <patternset id="js">
+      <include name="**/*.js" />
+      <exclude name="**/*.min.js" />
+    </patternset>
+
+    <!-- CSS files -->
+
+    <patternset id="css">
+      <include name="**/*.css" />
+    </patternset>
+
+    <!-- Directories for community contributed code. We exclude these
+         from code analysis as we cannot be held responsible for any
+         problems here. -->
+
+    <patternset id="contrib">
+      <exclude name="**/contrib/**/*.*" />
+      <exclude name="**/libraries/**/*.*" />
+    </patternset>
+
+    <!-- We exclude generated files from We exclude these from code
+         analysis as we cannot be held responsible for any problems
+         here. -->
+
+    <patternset id="generated">
+      <exclude name="**/*.features.*" />
+      <exclude name="**/*.field_group.inc" />
+      <exclude name="**/*.layouts.inc" />
+      <exclude name="**/*.pages_default.inc" />
+      <exclude name="**/*.panelizer.inc" />
+      <exclude name="**/*.panels_default.inc" />
+      <exclude name="**/*.strongarm.inc" />
+      <exclude name="**/*.views_default.inc" />
+    </patternset>
+
+    <!-- Define file sets for future reference -->
+
+    <!-- All PHP files -->
+    <fileset id="src.php" dir="${project.drupal.dir}">
+      <patternset refid="php"/>
+    </fileset>
+
+    <!-- Custom PHP files -->
+    <fileset id="src.php.custom" dir="${project.sitesdir}">
+      <patternset refid="php"/>
+      <patternset refid="contrib"/>
+      <patternset refid="generated"/>
+    </fileset>
+
+    <!-- All Javascript files -->
+    <fileset id="src.js" dir="${project.drupal.dir}">
+      <patternset refid="js" />
+    </fileset>
+
+    <!-- Custom Javascript files -->
+    <fileset id="src.js.custom" dir="${project.sitesdir}">
+      <patternset refid="js" />
+      <patternset refid="contrib" />
+    </fileset>
+
+    <!-- All CSS files -->
+    <fileset id="src.css" dir="${project.basedir}">
+      <patternset refid="css" />
+    </fileset>
+
+    <!-- Custom CSS files -->
+    <fileset id="src.css.custom" dir="${project.sitesdir}">
+      <patternset refid="css" />
+      <patternset refid="contrib" />
+    </fileset>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: enable-reroute-email                  -->
+  <!-- ============================================  -->
+
+  <target name="enable-reroute-email" depends="init, setup-phing-drush">
+
+    <drush command="pm-enable" assume="yes">
+      <param>reroute_email</param>
+    </drush>
+
+    <drush command="vset" assume="yes">
+      <param>reroute_email_address</param>
+      <param>${project.reroute.email}</param>
+      <option name="format">string</option>
+    </drush>
+
+    <drush command="vset" assume="yes">
+      <param>reroute_email_enable</param>
+      <param>"1"</param>
+      <option name="format">string</option>
+    </drush>
+
+    <drush command="vset" assume="yes">
+      <param>reroute_email_enable_message</param>
+      <param>"1"</param>
+      <option name="format">string</option>
+    </drush>
+
+  </target>
+  
+</project>
