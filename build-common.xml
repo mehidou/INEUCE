@@ -70,9 +70,7 @@
       <param>all</param>
     </drush>
 
-    <drush command="features-revert" assume="yes">
-      <param>${project.modules.custom}</param>
-    </drush>
+    <phingcall target="features-revert" />
 
     <drush command="cache-clear" assume="yes">
       <param>all</param>
@@ -150,25 +148,13 @@
     <foreach list="${project.modules.custom}" param="module" target="enable-module" />
 
     <!-- enable themes -->
-    <foreach list="${project.themes}" param="module" target="enable-module" />
+    <foreach list="${project.themes.custom}" param="module" target="enable-module" />
 
     <phingcall target="features-revert" />
     <phingcall target="setup-permissions" />
 
     <drush command="cache-clear">
       <param>all</param>
-    </drush>
-
-    <if>
-      <equals arg1="${generate.content}" arg2="true" />
-      <then>
-        <phingcall target="generate-content" />
-      </then>
-    </if>
-
-    <!-- rebuild content access permissions -->
-    <drush command="php-eval" assume="yes">
-      <param>'node_access_rebuild();'</param>
     </drush>
 
     <!-- Set property to prevent target from being executed multiple times -->
