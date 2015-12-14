@@ -28,6 +28,100 @@
   </target>
 
   <!-- ============================================  -->
+  <!-- Target: main                                  -->
+  <!-- ============================================  -->
+
+  <!-- This is the default target. -->
+
+  <target name="main" depends="init">
+
+    <if>
+      <available file="${project.drupal.dir}" type="dir" />
+      <then>
+        <phingcall target="update" />
+      </then>
+      <else>
+        <phingcall target="build" />
+      </else>
+    </if>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: build                                 -->
+  <!-- ============================================  -->
+
+  <!-- Do a complete build of the project by verifying code
+       consistency and and performing static analysis of the code. -->
+
+  <!-- This is the default build target. -->
+
+  <target name="build" depends="init, make, site-install" />
+
+  <!-- ============================================  -->
+  <!-- Target: update                                -->
+  <!-- ============================================  -->
+
+  <target name="update" depends="init, setup-phing-drush">
+
+    <drush command="updatedb" assume="yes" />
+
+    <drush command="cache-clear" assume="yes">
+      <param>all</param>
+    </drush>
+
+    <drush command="features-revert" assume="yes">
+      <param>${project.modules.custom}</param>
+    </drush>
+
+    <drush command="cache-clear" assume="yes">
+      <param>all</param>
+    </drush>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: make                                  -->
+  <!-- ============================================  -->
+
+  <target name="make" depends="load-properties, setup-phing-drush"
+          if="drupal.make.file">
+
+    <!-- Delete any pre-existing builds -->
+    <if>
+      <available file="${project.drupal.dir}" type="dir" />
+      <then>
+        <chmod file="${project.drupal.dir}/sites/default" mode="0777" failonerror="false" />
+        <delete dir="${project.drupal.dir}" />
+      </then>
+    </if>
+
+    <drush command="make" assume="yes">
+      <param>${drupal.make.file}</param>
+      <param>${drupal.make.dir}</param>
+    </drush>
+
+    <mkdir dir="${project.drupal.dir}/sites/all/modules/custom" />
+
+    <!-- symlink themes -->
+    <symlink link="${project.drupal.dir}/sites/all/themes">
+      <fileset dir="${project.basedir}/themes">
+        <include name="*" />
+      </fileset>
+    </symlink>
+
+    <!-- symlink modules -->
+    <symlink link="${project.drupal.dir}/sites/all/modules">
+      <fileset dir="${project.basedir}/modules">
+        <include name="*" />
+      </fileset>
+    </symlink>
+
+    <symlink target="${project.basedir}/translations" link="${project.drupal.dir}/sites/all/translations" />
+
+  </target>
+
+  <!-- ============================================  -->
   <!-- Target: site-install                          -->
   <!-- ============================================  -->
 
@@ -51,7 +145,7 @@
     <if><equals arg1="${project.environment}" arg2="dev" />
       <then><phingcall target="enable-reroute-email" /></then>
     </if>
-    
+
     <!-- enable modules -->
     <foreach list="${project.modules.custom}" param="module" target="enable-module" />
 
@@ -81,7 +175,7 @@
     <property name="project.installed" value="true"/>
 
   </target>
-  
+
   <!-- ============================================  -->
   <!-- Target: enable-module                         -->
   <!-- ============================================  -->
@@ -95,7 +189,7 @@
     </drush>
 
   </target>
-  
+
   <!-- ============================================  -->
   <!-- Target: update                                -->
   <!-- ============================================  -->
@@ -481,5 +575,5 @@
     </drush>
 
   </target>
-  
+
 </project>
