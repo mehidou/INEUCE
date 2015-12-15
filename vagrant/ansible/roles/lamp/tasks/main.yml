@@ -1,0 +1,26 @@
+---
+- name: Install packages
+  apt: pkg={{ item }} state=present
+  with_items:
+    - git
+    - curl
+    - unzip
+    - bzip2
+    - subversion
+    - mariadb-server
+    - libmysqlclient-dev
+    - apache2
+    - php5
+    - php5-curl
+
+- name: Install the Python MySQLB module
+  pip: name=MySQL-python
+
+- name: Create database
+  mysql_db: name=vagrant state=present
+
+- name: Create user and set privileges
+  mysql_user: name=vagrant password=vagrant priv=vagrant.*:ALL state=present
+
+- name: Start the Apache service
+  action: service name=apache2 state=started enabled=true
