@@ -25,13 +25,13 @@
 - name: Create user and set privileges
   mysql_user: name=vagrant password=vagrant priv=vagrant.*:ALL state=present
 
-- name: Start the Apache service
-  action: service name=apache2 state=started enabled=true
+- stat: path=/var/www/html
+  register: www
 
-- name: Start the MySQL service
-  action: service name=mysql state=started enabled=true
+- file: path=/var/www/html state=absent
+  when: www.stat.isdir is defined and www.stat.isdir
 
-- file: src=/var/www/html dest=/vagrant/www state=link force=yes
+- file: src=/vagrant/www dest=/var/www/html state=link force=yes
 
 - apache2_module: state=present name=rewrite
 
