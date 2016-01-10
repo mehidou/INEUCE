@@ -208,7 +208,7 @@
     <else>
 
       <drush command="atools-features-list" returnProperty="features_to_revert">
-        <option name="restricted-to">"${project.modules.custom}"</option>
+        <option name="restricted-to">${project.modules.custom}</option>
       </drush>
 
       <if><equals arg1="${features_to_revert}" arg2="" />

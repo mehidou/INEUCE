@@ -39,3 +39,7 @@ projects[strongarm][version] = "2.0"
 
 projects[views][subdir] = "contrib"
 projects[views][version] = "3.13"
+
+projetcs[atools][subdir] = "contrib"
+projects[atools][download][type] = "git"
+projects[atools][download][url] = "git@gitlab.alethes.be:alethes/atools.git"
