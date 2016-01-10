@@ -18,6 +18,7 @@ Vagrant.configure(2) do |config|
   config.vm.box = "debian/jessie64"
 
   config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
+  config.ssh.forward_agent = true
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
