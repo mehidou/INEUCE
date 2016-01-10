@@ -29,9 +29,9 @@
   action: service name=apache2 state=started enabled=true
 
 - name: Start the MySQL service
-  action: service name=mysqld state=started enabled=true
+  action: service name=mysql state=started enabled=true
 
-- file: path=/var/www/html dest=/vagrant/www state=link force=yes
+- file: src=/var/www/html dest=/vagrant/www state=link force=yes
 
 - apache2_module: state=present name=rewrite
 

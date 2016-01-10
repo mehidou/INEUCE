@@ -1,6 +1,6 @@
 ---
 - name: Restart Apache
-  service: name=httpd state=restarted
+  service: name=apache2 state=restarted
 
 - name: Restart MariaDB
-  service: name=mysqld state=restarted
+  service: name=mysql state=restarted
