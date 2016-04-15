@@ -23,10 +23,10 @@ projects[diff][subdir] = "contrib"
 projects[diff][version] = "3.2"
 
 projects[entity][subdir] = "contrib"
-projects[entity][version] = "1.6"
+projects[entity][version] = "1.7"
 
 projects[features][subdir] = "contrib"
-projects[features][version] = "2.7"
+projects[features][version] = "2.9"
 
 projects[piwik][subdir] = "contrib"
 projects[piwik][version] = "2.7"
