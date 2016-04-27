@@ -26,7 +26,7 @@ projects[entity][subdir] = "contrib"
 projects[entity][version] = "1.7"
 
 projects[features][subdir] = "contrib"
-projects[features][version] = "2.9"
+projects[features][version] = "2.10"
 
 projects[piwik][subdir] = "contrib"
 projects[piwik][version] = "2.7"
