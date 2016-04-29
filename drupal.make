@@ -15,6 +15,7 @@ projects[coder][version] = "2.5"
 
 projects[ctools][subdir] = "contrib"
 projects[ctools][version] = "1.9"
+projects[ctools][patch][] = "https://www.drupal.org/files/issues/deprecating_php4_style-2528736-23.patch"
 
 projects[devel][subdir] = "contrib"
 projects[devel][version] = "1.5"
