@@ -30,7 +30,7 @@ projects[features][subdir] = "contrib"
 projects[features][version] = "2.10"
 
 projects[piwik][subdir] = "contrib"
-projects[piwik][version] = "2.7"
+projects[piwik][version] = "2.8"
 
 projects[reroute_email][subdir] = "contrib"
 projects[reroute_email][version] = "1.2"
