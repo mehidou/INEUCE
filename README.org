@@ -6,6 +6,7 @@
 
   git clone git@gitlab.alethes.be:erggo/my_project.git
   cd my_project
+  ssh-add
   vagrant up
 
 * How to upgrade the Starter Kit?

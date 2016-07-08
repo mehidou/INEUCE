@@ -1,0 +1,13 @@
+---
+- name: Configure Bash
+  copy: src=bashrc
+        dest=/home/vagrant/.bashrc
+        owner=vagrant group=vagrant mode=0644
+
+- file: path=/home/vagrant/.drush state=directory
+        owner=vagrant group=vagrant mode=0755
+
+- name: Configure Drush
+  copy: src=drushrc.php
+        dest=/home/vagrant/.drush/drushrc.php
+        owner=vagrant group=vagrant mode=0644

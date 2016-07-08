@@ -16,6 +16,7 @@ Vagrant.configure(2) do |config|
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://atlas.hashicorp.com/search.
   config.vm.box = "debian/jessie64"
+  config.vm.box_version = "8.2.1"
 
   config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
   config.ssh.forward_agent = true
@@ -28,7 +29,7 @@ Vagrant.configure(2) do |config|
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine. In the example below,
   # accessing "localhost:8080" will access port 80 on the guest machine.
-  config.vm.network "forwarded_port", guest: 80, host: 8080, auto_coorect: true
+  config.vm.network "forwarded_port", guest: 80, host: 8080, auto_correct: true
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
@@ -70,7 +71,9 @@ Vagrant.configure(2) do |config|
   # end
 
   config.vm.provision "shell", inline: "cat /vagrant/vagrant/shell/self-promotion.txt"
-  config.vm.provision "shell", path: "vagrant/shell/install-ansible.sh"
+  config.vm.provision "shell", path: "vagrant/shell/install-ansible.sh", keep_color: true, privileged: true
+  config.vm.provision "shell", path: "vagrant/shell/install-composer.sh", keep_color: true, privileged: false
+  config.vm.provision "shell", path: "vagrant/shell/install-site.sh", keep_color: true, privileged: false
 
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export DRUSH_PHP="/usr/bin/php"
-export PATH=$PATH:~/bin
+export PATH=$PATH:/vagrant/bin
 
 if [[ ! -d /vagrant/www ]]; then
     echo "Installing site ..."
