@@ -1,0 +1,16 @@
+#+STARTUP: hidestars
+#+AUTHOR: Michaël Bruneel
+#+TITLE: Alêthês Drupal 7 Starter Kit
+
+* How to start coding?
+
+  git clone git@gitlab.alethes.be:erggo/my_project.git
+  cd my_project
+  vagrant up
+
+* How to upgrade the Starter Kit?
+
+  git remote add drupal git@gitlab.alethes.be:alethes/drupal.git
+  git merge --no-ff drupal/master
+
+  Note: you may have to resolve conflicts.
