@@ -2,3 +2,12 @@
 *~
 \.\#*
 \#*\#
+/vendor
+/bin/
+/composer.phar
+/build/
+/build.properties
+/behat.yml
+/www/
+/.vagrant
+/auth.json
