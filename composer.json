@@ -35,4 +35,8 @@
         "drupal/phing-drush-task": "1.2",
         "drupal/coder": "~8.2.0"
     }
+    "config": {
+        "bin-dir": "bin/",
+        "secure-http": false
+    }
 }
