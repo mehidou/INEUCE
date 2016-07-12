@@ -1,0 +1,8 @@
+name = INCEUCE core
+description = Common code shared between all inceuce modules.
+core = 7.x
+package = INCEUCE
+
+dependencies[] = atools
+dependencies[] = features
+features[features_api][] = api:2
